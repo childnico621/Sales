@@ -7,65 +7,65 @@ namespace Sales.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CountriesController : ControllerBase
+    public class StatesController : ControllerBase
     {
         private readonly DataContext _context;
-        public CountriesController(DataContext dataContext) => _context = dataContext;
+
+        public StatesController(DataContext dataContext) => _context = dataContext;
 
 
         [HttpGet]
         public async Task<IActionResult> GetAsync()
         {
-            var countries = await _context.Countries.Include(c => c.States).ToListAsync();
-            return Ok(countries);
+            var states = await _context.States.Include(c => c.Cities).ToListAsync();
+            return Ok(states);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAsync(int id)
         {
-            var country = await _context.Countries
-                .Include(c => c.States!)
-                .ThenInclude(s => s.Cities)
+            var state = await _context.States
+                .Include(c => c.Cities)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (country == null)
+            if (state == null)
             {
                 return NotFound();
             }
 
-            return Ok(country);
+            return Ok(state);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
-            var country = await _context.Countries.FirstOrDefaultAsync(c => c.Id == id);
-            if (country == null)
+            var state = await _context.States.FirstOrDefaultAsync(c => c.Id == id);
+            if (state == null)
             {
                 return NotFound();
             }
-            _context.Remove(country);
+            _context.Remove(state);
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpPost]
-        public async Task<IActionResult> PostAsync(Country country)
+        public async Task<IActionResult> PostAsync(State state)
         {
-            _context.Add(country);
+            _context.Add(state);
 
             try
             {
                 await _context.SaveChangesAsync();
-                return Ok(country);
+                return Ok(state);
             }
             catch (DbUpdateException dbUpdateException)
             {
                 if (dbUpdateException.InnerException!.Message.Contains("duplicate"))
                     return BadRequest("Ya existe un país con el mismo nombre.");
-                
+
                 return BadRequest(dbUpdateException.Message);
-                
+
             }
             catch (Exception e)
             {
@@ -74,13 +74,13 @@ namespace Sales.API.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> PutAsync(Country country)
+        public async Task<IActionResult> PutAsync(State state)
         {
-            _context.Update(country);
+            _context.Update(state);
             try
             {
                 await _context.SaveChangesAsync();
-                return Ok(country);
+                return Ok(state);
             }
             catch (DbUpdateException dbUpdateException)
             {

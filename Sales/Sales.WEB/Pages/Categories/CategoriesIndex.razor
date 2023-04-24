@@ -1,32 +1,31 @@
-﻿@page "/countries"
+﻿@page "/categories"
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
 
-<h3>Paises</h3>
+<h3>Categorías</h3>
 <div class="mb-3">
-    <a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+    <a class="btn btn-primary" href="/categories/create">Nueva Categoría</a>
 </div>
-<GenericList MyList="countries">
+<GenericList MyList="categories">
     <Body>
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>País</th>
-                    <th>Estados/Departamentos</th>
+                    <th>Categoría</th>
+                    
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var country in countries!)
+                @foreach (var category in categories!)
                 {
                     <tr>
-                        <td>@country.Name</td>
-                        <td>@country.StatesCount</td>
-                        <td>
-                            <a href="/countries/details/@country.Id" class="btn btn-info">Detalles</a>
-                            <a href="/countries/edit/@country.Id" class="btn btn-warning">Editar</a>
-                            <button class="btn btn-danger" @onclick=@(() => DeleteAsync(country.Id))>Borrar</button>
+                        <td>@category.Name</td>
+                        
+                        <td>                            
+                            <a href="/categories/edit/@category.Id" class="btn btn-warning">Editar</a>
+                            <button class="btn btn-danger" @onclick=@(() => DeleteAsync(category.Id))>Borrar</button>
                         </td>
                     </tr>
                 }
@@ -35,9 +34,8 @@
     </Body>
 </GenericList>
 
-
 @code {
-    private List<Country>? countries;
+    private List<Category>? categories;
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,14 +44,14 @@
 
     private async Task LoadAsync()
     {
-        var httpResponse = await repository.GetAsync<List<Country>>("/api/countries");
+        var httpResponse = await repository.GetAsync<List<Category>>("/api/Categories");
         if (httpResponse.Error)
         {
             var message = await httpResponse.GetErrorMessageAsync();
             await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
             return;
         }
-        countries = httpResponse.Response;
+        categories = httpResponse.Response;
     }
 
     private async Task DeleteAsync(int id)
@@ -72,7 +70,7 @@
             return;
         }
 
-        var responseHTTP = await repository.DeleteAsync($"api/Countries/{id}");
+        var responseHTTP = await repository.DeleteAsync($"api/Categories/{id}");
         if (responseHTTP.Error)
         {
             if (responseHTTP.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
