@@ -163,8 +163,8 @@ else
             url = $"api/cities/GetPages?id={StateId}&filter={Filter}";
         }
 
-        var responseHppt = await repository.GetAsync<int>(url);
-        totalPages = responseHppt.Response!;
+        var responseHttp = await repository.GetAsync<int>(url);
+        totalPages = responseHttp.Response!;
     }
 
 

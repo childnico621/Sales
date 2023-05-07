@@ -1,4 +1,4 @@
-﻿@page "/countries/details/{Id:int}"
+﻿@page "/countries/details/{CountryId:int}"
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
@@ -79,7 +79,7 @@ else
     public string Filter { get; set; } = "";
 
     [Parameter]
-    public int Id { get; set; }
+    public int CountryId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,8 +91,8 @@ else
     {
         if (!string.IsNullOrWhiteSpace(Page)) page = Convert.ToInt32(Page);
 
-        var url = string.IsNullOrEmpty(Filter) ? $"api/states?id={Id}&page={page}" : $"api/countries/{Id}?id={Id}&page={page}&filter={Filter}";
-        var urlCountry = $"api/countries/{Id}";
+        var url = string.IsNullOrEmpty(Filter) ? $"api/states?id={CountryId}&page={page}" : $"api/states?id={CountryId}&page={page}&filter={Filter}";
+        var urlCountry = $"api/countries/{CountryId}";
 
 
         var responseHttp = await repository.GetAsync<List<State>>(url);
@@ -157,15 +157,15 @@ else
         var url = string.Empty;
         if (string.IsNullOrEmpty(Filter))
         {
-            url = $"api/states/GetPages?id={Id}";
+            url = $"api/states/GetPages?id={CountryId}";
         }
         else
         {
-            url = $"api/states/GetPages?id={Id}&filter={Filter}";
+            url = $"api/states/GetPages?id={CountryId}&filter={Filter}";
         }
 
-        var responseHppt = await repository.GetAsync<int>(url);
-        totalPages = responseHppt.Response!;
+        var responseHttp = await repository.GetAsync<int>(url);
+        totalPages = responseHttp.Response!;
     }
 
 
