@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sales.API.Data;
+using Sales.API.Helper;
+using Sales.Shared.DTO;
 using Sales.Shared.Entities;
 
 namespace Sales.API.Controllers
@@ -14,10 +16,19 @@ namespace Sales.API.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAsync()
+        public async Task<IActionResult> GetAsync([FromQuery] PaginationDto pagination)
         {
-            var countries = await _context.Countries.Include(c => c.States).ToListAsync();
-            return Ok(countries);
+            var querable = _context.Countries.Include(c => c.States).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(pagination.Filter))
+            {
+                querable = querable.Where(c => c.Name.ToLower().Contains(pagination.Filter.ToLower()));
+            }
+
+            return Ok(await querable
+                .OrderBy(c => c.Name)
+                .Paginate(pagination)
+                .ToListAsync());
         }
 
         [HttpGet("{id}")]
@@ -28,12 +39,25 @@ namespace Sales.API.Controllers
                 .ThenInclude(s => s.Cities)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (country == null)
-            {
-                return NotFound();
-            }
+            if (country == null) return NotFound();
+
 
             return Ok(country);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<ActionResult> GetPages([FromQuery] PaginationDto pagination)
+        {
+            var querable = _context.Countries.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(pagination.Filter))
+            {
+                querable = querable.Where(c => c.Name.ToLower().Contains(pagination.Filter.ToLower()));
+            }
+
+            double count = await querable.CountAsync();
+            double totalPages = Math.Ceiling(count / pagination.RecordNumber);
+            return Ok(totalPages);
         }
 
         [HttpDelete("{id}")]
@@ -63,9 +87,9 @@ namespace Sales.API.Controllers
             {
                 if (dbUpdateException.InnerException!.Message.Contains("duplicate"))
                     return BadRequest("Ya existe un país con el mismo nombre.");
-                
+
                 return BadRequest(dbUpdateException.Message);
-                
+
             }
             catch (Exception e)
             {
