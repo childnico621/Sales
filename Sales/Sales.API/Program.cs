@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Sales.API.Data;
+using Sales.API.Intefaces;
+using Sales.API.Services;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,11 +10,17 @@ var devCorsPolicy = "devCorsPolicy";
 builder.Services.AddControllers()
     .AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
-builder.Services.AddDbContext<DataContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("sales")); });
+builder.Services.AddDbContext<DataContext>(options => { options.UseSqlServer(builder.Configuration.GetConnectionString("DOCKER_SALES")); });
 builder.Services.AddTransient<SeedDb>();
+builder.Services.AddHttpClient("CoutriesAPI", httpClient =>
+{
+    httpClient.BaseAddress = new Uri(builder.Configuration.GetSection("CoutriesAPI").GetValue<string>("urlBase")!);
+    httpClient.DefaultRequestHeaders.Add(builder.Configuration.GetSection("CoutriesAPI").GetValue<string>("tokenName")!,
+        builder.Configuration.GetSection("CoutriesAPI").GetValue<string>("tokenValue"));
+});
+builder.Services.AddScoped<IApiService, ApiService>();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
