@@ -1,4 +1,4 @@
-﻿@page "/states/details/{Id:int}"
+﻿@page "/states/details/{StateId:int}"
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
@@ -10,12 +10,24 @@
 else
 {
     <h3>@state?.Name</h3>
-    <div class="mb-2">
-        <a class="btn btn-primary" href="/cities/create/@state!.Id">Nueva Ciudad</a>
-        <a class="btn btn-success" href="/countries/details/@state!.CountryId">Regresar</a>
+    <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
+        <div>
+            <a class="btn btn-primary" href="@(createLink)">@(createDescription)</a>
+            <a class="btn btn-success" href="@(backLink)">Regresar</a>
+        </div>
+        <div class="mx-2">
+            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="@(filterPlaceholder)" @bind-value="Filter" />
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync">Filtrar</button>
+            <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync">Limpiar</button>
+        </div>
     </div>
 
-    <GenericList MyList="state.Cities!.ToList()">
+    <Pagination CurrentPage="currentPage" TotalPages="totalPages" SelectedPage="SelectedPage" />
+  
+
+    <GenericList MyList="cities!.ToList()">
         <Body>
             <table class="table table-striped">
                 <thead>
@@ -25,7 +37,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var city in state.Cities!)
+                    @foreach (var city in cities!)
                     {
                         <tr>
                             <td>
@@ -46,18 +58,43 @@ else
 
 @code {
     private State? state;
+    private List<City>? cities;
+    private int currentPage = 1;
+    private int totalPages;
+
+    private string createLink = "/cities/create/@state!.Id";
+    private string createDescription = "Nueva ciudad";
+    private string filterPlaceholder = "Buscar ciudad...";
+    private string backLink = string.Empty;
 
     [Parameter]
-    public int Id { get; set; }
+    [SupplyParameterFromQuery]
+    public string Page { get; set; } = "";
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Filter { get; set; } = "";
+
+    [Parameter]
+    public int StateId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadTotalPagesAsync();
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(int page = 1)
     {
-        var responseHttp = await repository.GetAsync<State>($"/api/states/{Id}");
+        createLink = $"/cities/create/{StateId}";
+
+
+        if (!string.IsNullOrWhiteSpace(Page)) page = Convert.ToInt32(Page);
+
+        var cityUrl = string.IsNullOrEmpty(Filter) ? $"api/cities/?id={StateId}&page={page}" : $"api/cities?id={StateId}&page={page}&filter={Filter}";
+        var stateUrl = $"api/states/{StateId}?page={page}";
+        var responseHttp = await repository.GetAsync<List<City>>(cityUrl);
+
         if (responseHttp.Error)
         {
             if (responseHttp.HttpResponseMessage.StatusCode == HttpStatusCode.NotFound)
@@ -70,8 +107,10 @@ else
             await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
             return;
         }
-
-        state = responseHttp.Response;
+        var stateResponseHttp = await repository.GetAsync<State>(stateUrl);
+        cities = responseHttp.Response;
+        state = stateResponseHttp.Response;
+        backLink = $"/countries/details/{state!.CountryId}";
     }
 
     private async Task DeleteAsync(int id)
@@ -104,5 +143,42 @@ else
         }
 
         await LoadAsync();
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        currentPage = page;
+        await LoadAsync(page);
+    }
+
+    private async Task LoadTotalPagesAsync()
+    {
+        var url = string.Empty;
+        if (string.IsNullOrEmpty(Filter))
+        {
+            url = $"api/cities/GetPages?id={StateId}";
+        }
+        else
+        {
+            url = $"api/cities/GetPages?id={StateId}&filter={Filter}";
+        }
+
+        var responseHppt = await repository.GetAsync<int>(url);
+        totalPages = responseHppt.Response!;
+    }
+
+
+    private async Task CleanFilterAsync()
+    {
+        Filter = string.Empty;
+        await ApplyFilterAsync();
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        int page = 1;
+        await LoadTotalPagesAsync();
+        await LoadAsync(page);
+        await SelectedPage(page);
     }
 }
